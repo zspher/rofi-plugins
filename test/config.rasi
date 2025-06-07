@@ -1,0 +1,5 @@
+configuration {
+    websearch {
+        test: "123";
+    }
+}
