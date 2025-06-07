@@ -1,59 +1,9 @@
-use std::{
-    ffi::{CStr, c_char, c_int},
-    ptr::null,
-};
-
-use ffi::PropertyType;
-use ffi::helper::config_find_widget;
-use rofi_plugin_sys::{self as ffi, helper::theme_find_property};
-
-struct Config {
-    test: Option<String>,
-}
+use rofi_plugin_sys as ffi;
 
 #[allow(dead_code)]
 struct Mode<'rofi> {
     entries: Vec<String>,
-    config: Option<Config>,
     api: rofi_mode::Api<'rofi>,
-}
-
-impl Config {
-    fn new(mode_name: &str) -> Option<Config> {
-        match Self::load_config(mode_name) {
-            Ok(config) => Some(config),
-            Err(e) => {
-                eprintln!("[rofi-websearch] config error: {}", e);
-                None
-            }
-        }
-    }
-
-    fn load_config(mode_name: &str) -> Result<Config, &str> {
-        unsafe {
-            let cfg = config_find_widget(mode_name.as_ptr() as *const c_char, null(), 1);
-            if cfg.is_null() {
-                return Err("config not loaded");
-            }
-
-            let prop_test = theme_find_property(cfg, PropertyType::String, c"test".as_ptr(), 1);
-            if prop_test.is_null() {
-                return Err("field missing or invalid type");
-            }
-
-            let test_value = {
-                let c_str = CStr::from_ptr((*prop_test).value.s);
-                c_str
-                    .to_str()
-                    .map_err(|_| "config property 'test' is not valid UTF-8")?
-                    .to_owned()
-            };
-
-            Ok(Self {
-                test: Some(test_value),
-            })
-        }
-    }
 }
 
 impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
@@ -66,7 +16,6 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
         Ok(Self {
             api,
             entries: dummy,
-            config: Config::new(Self::NAME),
         })
     }
 
@@ -144,13 +93,6 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
             ffi::view::reload();
         }
         input.into()
-    }
-
-    fn message(&mut self) -> rofi_mode::String {
-        match &self.config {
-            Some(c) => c.test.clone().unwrap().into(),
-            None => "".into(),
-        }
     }
 }
 
