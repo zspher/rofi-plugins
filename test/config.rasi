@@ -1,5 +1,10 @@
 configuration {
+    display-websearch: "123";
     websearch {
+        display-name: "cat";
         test: "123";
+    }
+    combi {
+        websearch: #f78;
     }
 }
