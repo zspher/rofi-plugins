@@ -1,4 +1,7 @@
-use std::ptr::null;
+use std::{
+    ffi::{CStr, c_char, c_int},
+    ptr::null,
+};
 
 use ffi::PropertyType;
 use ffi::helper::config_find_widget;
@@ -17,25 +20,37 @@ struct Mode<'rofi> {
 
 impl Config {
     fn new(mode_name: &str) -> Option<Config> {
-        let config = Config::load_config(mode_name);
-        if let Err(e) = config {
-            eprintln!("{}", e)
+        match Self::load_config(mode_name) {
+            Ok(config) => Some(config),
+            Err(e) => {
+                eprintln!("[rofi-websearch] config error: {}", e);
+                None
+            }
         }
-        config.ok()
     }
+
     fn load_config(mode_name: &str) -> Result<Config, &str> {
         unsafe {
-            println!("{}", mode_name);
-            let cfg = config_find_widget(mode_name.as_ptr() as *const i8, null(), 1);
+            let cfg = config_find_widget(mode_name.as_ptr() as *const c_char, null(), 1);
             if cfg.is_null() {
                 return Err("config not loaded");
             }
-            let test = theme_find_property(cfg, PropertyType::String, c"test".as_ptr(), 1);
-            if test.is_null() {
+
+            let prop_test = theme_find_property(cfg, PropertyType::String, c"test".as_ptr(), 1);
+            if prop_test.is_null() {
                 return Err("field missing or invalid type");
             }
+
+            let test_value = {
+                let c_str = CStr::from_ptr((*prop_test).value.s);
+                c_str
+                    .to_str()
+                    .map_err(|_| "config property 'test' is not valid UTF-8")?
+                    .to_owned()
+            };
+
             Ok(Self {
-                test: Some((*(*test).value.s.cast::<String>()).clone()),
+                test: Some(test_value),
             })
         }
     }
