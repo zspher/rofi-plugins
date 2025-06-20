@@ -1,7 +1,11 @@
 configuration {
+    modes: "drun";
+    combi-modes: "drun";
     display-websearch: "123";
+    show-icons: true;
+    drun-show-actions: true;
     websearch {
-        display-name: "cat";
+        // display-name: "cat";
         test: "123";
     }
     combi {
