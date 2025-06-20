@@ -6,8 +6,9 @@ edition = "2024"
 [dependencies]
 rofi-mode = "0.4.1"
 rofi-plugin-sys = "0.5.0"
-search_engines = {path = "../search_engines"}
-phf = "0.11.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
 
 [lib]
 crate-type = ["cdylib"]

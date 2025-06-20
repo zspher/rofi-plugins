@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::process::Command;
+mod search;
 
 use rofi_mode::Event;
+use search::Search;
 // use rofi_plugin_sys as ffi;
 
 #[allow(dead_code)]
@@ -9,26 +12,40 @@ struct Mode<'rofi> {
     api: rofi_mode::Api<'rofi>,
 }
 
-fn parse_input(p: &str) -> (Option<&str>, Option<&str>) {
-    if let Some(rest) = p.strip_prefix("#") {
-        // Split at the first space
-        let (prefix, search) = rest
-            .split_once(' ')
-            .map(|(a, b)| (Some(a), Some(b)))
-            .unwrap_or((Some(rest), None)); // No space: treat whole thing as prefix, no search
-        (prefix, search)
-    } else {
-        (None, Some(p))
-    }
-}
+impl Mode<'_> {
+    fn parse_input(&self, input: &str) -> Option<String> {
+        let (tag, search) = if let Some(con) = input.trim().strip_prefix('#') {
+            match con.split_once(' ') {
+                Some((t, q)) => (Some(t).filter(|x| !x.is_empty()), Some(q)),
+                None => ((Some(con).filter(|x| !x.is_empty())), None),
+            }
+        } else {
+            (None, Some(input))
+        };
 
-fn open_engine(url: &str, query: &str) {
-    if let Err(why) = Command::new("sh")
-        .arg("-c")
-        .arg(format!("xdg-open \"{}\"", url.replace("{{{s}}}", query)))
-        .spawn()
-    {
-        println!("Failed to perform websearch: {}", why);
+        let Ok(engines) = search::get_engine_list() else {
+            eprintln!("Could not read search engine list file");
+            return None;
+        };
+
+        let Some(data) = engines.get(tag.unwrap_or("ddg")) else {
+            eprintln!("search engine tag not found");
+            return None;
+        };
+
+        Some(match search {
+            Some(s) => data.url.replace("{{{s}}}", s),
+            None => format!("https://{}", data.default_url),
+        })
+    }
+    fn open_url(&self, url: &str) {
+        if let Err(why) = Command::new("sh")
+            .arg("-c")
+            .arg(format!("xdg-open \"{}\"", url))
+            .spawn()
+        {
+            println!("Failed to perform websearch: {}", why);
+        }
     }
 }
 
@@ -37,7 +54,8 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
 
     fn init(mut api: rofi_mode::Api<'rofi>) -> Result<Self, ()> {
         api.set_display_name("websearch");
-        let entries = vec!["search".into()];
+
+        let entries = vec!["Search".into()];
 
         Ok(Self { api, entries })
     }
@@ -58,15 +76,9 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
                 alt: _,
                 selected: _,
             } => {
-                let (command, search) = parse_input(input);
-                let url = search_engines::SEARCH_ENTRIES
-                    .get(command.unwrap_or("ddg"))
-                    .map(|x| x.url)
-                    .expect("Missing URL for search engine");
-
-                let search = search.unwrap_or("");
-
-                open_engine(url, search);
+                if let Some(url) = self.parse_input(input) {
+                    self.open_url(url.as_str());
+                }
                 return rofi_mode::Action::Exit;
             }
             Event::CustomInput {
@@ -76,14 +88,13 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
                 return rofi_mode::Action::Exit;
             }
             Event::DeleteEntry { selected } => {
-                self.entries.remove(selected);
+                // self.entries.remove(selected);
             }
             Event::Complete {
                 selected: Some(selected),
             } => {
-                println!("test");
-                input.clear();
-                input.push_str(&self.entries[selected]);
+                // input.clear();
+                // input.push_str(&self.entries[selected]);
             }
             Event::CustomCommand {
                 number,
@@ -91,7 +102,7 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
             } => {
                 return rofi_mode::Action::SetMode(number as u16);
             }
-            Event::Complete { .. } => {}
+            Event::Complete { .. } => (),
         }
         rofi_mode::Action::Reload
     }
