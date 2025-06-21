@@ -2,7 +2,13 @@
 a collection of rofi plugins in rust
 
 ## websearch
-search with a selection of search engines
+Search with a selection of search engines, similar to [unduck](https://github.com/t3dotgg/unduck).
+Uses `#` as the prefix.
+
+- [x] implement prefix based search
+- [ ] auto download bangs.json if not present
+- [ ] (optional) add search history
+
 
 ## resources
 - [rofi](https://github.com/davatorium/rofi)
