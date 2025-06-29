@@ -4,6 +4,7 @@ use std::io::{self};
 
 use serde::Deserialize;
 use serde_json::from_str;
+use urlencoding::encode;
 
 pub struct SearchSitesData(HashMap<String, SearchSite>);
 
@@ -65,7 +66,7 @@ impl SearchSitesData {
         };
 
         Some(match query.query {
-            Some(s) => data.url.replace("{{{s}}}", &s),
+            Some(s) => data.url.replace("{{{s}}}", &encode(&s)),
             None => format!("https://{}", data.default_url),
         })
     }

@@ -5,11 +5,11 @@ use rofi_mode::{Action, Event};
 use rofi_plugin_sys as ffi;
 use std::process::Command;
 
-#[allow(dead_code)]
 struct Mode<'rofi> {
     previous_input: String,
     sites: SearchSitesData,
     entries: Vec<String>,
+    #[allow(dead_code)]
     api: rofi_mode::Api<'rofi>,
 }
 
