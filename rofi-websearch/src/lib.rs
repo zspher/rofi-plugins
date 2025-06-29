@@ -1,12 +1,13 @@
 mod search;
 use search::SearchSitesData;
 
-// use rofi_plugin_sys as ffi;
 use rofi_mode::{Action, Event};
+use rofi_plugin_sys as ffi;
 use std::process::Command;
 
 #[allow(dead_code)]
 struct Mode<'rofi> {
+    previous_input: String,
     sites: SearchSitesData,
     entries: Vec<String>,
     api: rofi_mode::Api<'rofi>,
@@ -32,6 +33,7 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
         let entries = vec!["Search".into()];
 
         Ok(Self {
+            previous_input: String::new(),
             api,
             entries,
             sites,
@@ -77,7 +79,15 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
     }
 
     fn preprocess_input(&mut self, input: &str) -> rofi_mode::String {
+        unsafe {
+            ffi::view::reload();
+        }
+        self.previous_input = input.into();
         input.into()
+    }
+
+    fn message(&mut self) -> rofi_mode::String {
+        self.sites.get_title_from_input(&self.previous_input).into()
     }
 }
 
