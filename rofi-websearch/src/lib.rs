@@ -1,51 +1,24 @@
-use std::collections::HashMap;
-use std::process::Command;
 mod search;
+use search::SearchSitesData;
 
-use rofi_mode::Event;
-use search::Search;
 // use rofi_plugin_sys as ffi;
+use rofi_mode::{Action, Event};
+use std::process::Command;
 
 #[allow(dead_code)]
 struct Mode<'rofi> {
+    sites: SearchSitesData,
     entries: Vec<String>,
     api: rofi_mode::Api<'rofi>,
 }
 
-impl Mode<'_> {
-    fn parse_input(&self, input: &str) -> Option<String> {
-        let (tag, search) = if let Some(con) = input.trim().strip_prefix('#') {
-            match con.split_once(' ') {
-                Some((t, q)) => (Some(t).filter(|x| !x.is_empty()), Some(q)),
-                None => ((Some(con).filter(|x| !x.is_empty())), None),
-            }
-        } else {
-            (None, Some(input))
-        };
-
-        let Ok(engines) = search::get_engine_list() else {
-            eprintln!("Could not read search engine list file");
-            return None;
-        };
-
-        let Some(data) = engines.get(tag.unwrap_or("ddg")) else {
-            eprintln!("search engine tag not found");
-            return None;
-        };
-
-        Some(match search {
-            Some(s) => data.url.replace("{{{s}}}", s),
-            None => format!("https://{}", data.default_url),
-        })
-    }
-    fn open_url(&self, url: &str) {
-        if let Err(why) = Command::new("sh")
-            .arg("-c")
-            .arg(format!("xdg-open \"{}\"", url))
-            .spawn()
-        {
-            println!("Failed to perform websearch: {}", why);
-        }
+fn open_url(url: &str) {
+    if let Err(why) = Command::new("sh")
+        .arg("-c")
+        .arg(format!("xdg-open \"{}\"", url))
+        .spawn()
+    {
+        println!("Failed to perform websearch: {}", why);
     }
 }
 
@@ -55,9 +28,14 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
     fn init(mut api: rofi_mode::Api<'rofi>) -> Result<Self, ()> {
         api.set_display_name("websearch");
 
+        let sites = SearchSitesData::init();
         let entries = vec!["Search".into()];
 
-        Ok(Self { api, entries })
+        Ok(Self {
+            api,
+            entries,
+            sites,
+        })
     }
 
     fn entries(&mut self) -> usize {
@@ -69,42 +47,26 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
         rofi_mode::format!("{}", entry)
     }
 
-    fn react(&mut self, event: Event, input: &mut rofi_mode::String) -> rofi_mode::Action {
+    fn react(&mut self, event: Event, input: &mut rofi_mode::String) -> Action {
         match event {
-            Event::Cancel { selected: _ } => return rofi_mode::Action::Exit,
             Event::Ok {
                 alt: _,
                 selected: _,
             } => {
-                if let Some(url) = self.parse_input(input) {
-                    self.open_url(url.as_str());
+                if let Some(url) = self.sites.get_url_from_input(input) {
+                    open_url(&url);
                 }
-                return rofi_mode::Action::Exit;
-            }
-            Event::CustomInput {
-                alt: _,
-                selected: _,
-            } => {
-                return rofi_mode::Action::Exit;
-            }
-            Event::DeleteEntry { selected } => {
-                // self.entries.remove(selected);
-            }
-            Event::Complete {
-                selected: Some(selected),
-            } => {
-                // input.clear();
-                // input.push_str(&self.entries[selected]);
+                return Action::Exit;
             }
             Event::CustomCommand {
                 number,
                 selected: _,
             } => {
-                return rofi_mode::Action::SetMode(number as u16);
+                return Action::SetMode(number as u16);
             }
-            Event::Complete { .. } => (),
+            _ => (),
         }
-        rofi_mode::Action::Reload
+        Action::Exit
     }
 
     fn matches(&self, line: usize, matcher: rofi_mode::Matcher<'_>) -> bool {
