@@ -17,7 +17,7 @@ install:
 
 
 run: build
-    ROFI_PLUGIN_PATH="target/release" rofi  -show {{ PLUGIN_NAME }} -config {{ TEST_CONFIG }}
+    rofi -plugin-path "target/release" -show {{ PLUGIN_NAME }} -config {{ TEST_CONFIG }}
 
 run-combi: build
-    ROFI_PLUGIN_PATH="target/release" rofi -combi-modes drun,{{ PLUGIN_NAME }} -show combi -config {{TEST_CONFIG}}
+    rofi -plugin-path "target/release" -combi-modes {{ PLUGIN_NAME }},drun -show combi -config {{TEST_CONFIG}}
