@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use std::fs::{self};
-use std::io::{self};
+use std::fs;
+use std::io;
 
+use curl::easy::Easy;
 use serde::Deserialize;
 use serde_json::from_str;
 use urlencoding::encode;
@@ -12,7 +13,7 @@ impl SearchSitesData {
     pub fn init() -> Self {
         match Self::get_sites_data() {
             Err(e) => {
-                eprintln!("unable to load sites data: {}", e);
+                eprintln!("unable to load sites data file: {}", e);
                 Self(HashMap::from([(
                     "ddg".into(),
                     SearchSite {
@@ -27,9 +28,44 @@ impl SearchSitesData {
         }
     }
 
+    fn download_data() -> Result<(), io::Error> {
+        let data_path = dirs::data_dir()
+            .ok_or(io::Error::from(io::ErrorKind::NotFound))?
+            .join("rofi-websearch-data.json");
+
+        let mut file = fs::File::create(data_path)?;
+
+        let mut easy = Easy::new();
+        easy.url(
+            "https://raw.githubusercontent.com/kagisearch/bangs/refs/heads/main/data/bangs.json",
+        )?;
+
+        easy.write_function(move |data| {
+            let _ = io::Write::write(&mut file, data).map_err(|_| curl::easy::WriteError::Pause);
+            Ok(data.len())
+        })?;
+
+        easy.perform()?;
+
+        let status = easy.response_code()?;
+        if status != 200 {
+            return Err(io::Error::from(io::ErrorKind::NotFound));
+        }
+
+        Ok(())
+    }
+
     fn get_sites_data() -> Result<Self, io::Error> {
-        let data_path = dirs::data_dir().ok_or(io::Error::from(io::ErrorKind::NotFound))?;
-        let file = fs::read_to_string(data_path.join("rofi-websearch-data.json"))?;
+        let data_path = dirs::data_dir()
+            .ok_or(io::Error::from(io::ErrorKind::NotFound))?
+            .join("rofi-websearch-data.json");
+
+        if !data_path.exists() {
+            Self::download_data()?;
+            println!("downloaded sites data file");
+        }
+
+        let file = fs::read_to_string(data_path)?;
         let data: Vec<SearchSite> = from_str(&file)?;
 
         Ok(Self(data.into_iter().map(|x| (x.id.clone(), x)).collect()))
