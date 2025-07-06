@@ -68,6 +68,8 @@
               cairo
               pango
               just
+
+              curl
             ];
 
             shellHook = ''
@@ -83,9 +85,8 @@
           lockFile = ./Cargo.lock;
         in
         rec {
-          rofi-websearch = pkgs.callPackage ./nix/plugin.nix {
+          rofi-websearch = pkgs.callPackage ./nix/websearch-plugin.nix {
             inherit lockFile;
-            name = "rofi-websearch";
           };
           rofi-with-plug = (
             pkgs.rofi-wayland.override {
