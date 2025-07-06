@@ -10,6 +10,8 @@ use urlencoding::encode;
 pub struct SearchSitesData(HashMap<String, SearchSite>);
 
 impl SearchSitesData {
+    const DATA_FILE: &str = "rofi-websearch-data.json";
+
     pub fn init() -> Self {
         match Self::get_sites_data() {
             Err(e) => {
@@ -31,7 +33,7 @@ impl SearchSitesData {
     fn download_data() -> Result<(), io::Error> {
         let data_path = dirs::data_dir()
             .ok_or(io::Error::from(io::ErrorKind::NotFound))?
-            .join("rofi-websearch-data.json");
+            .join(Self::DATA_FILE);
 
         let mut file = fs::File::create(data_path)?;
 
@@ -58,7 +60,7 @@ impl SearchSitesData {
     fn get_sites_data() -> Result<Self, io::Error> {
         let data_path = dirs::data_dir()
             .ok_or(io::Error::from(io::ErrorKind::NotFound))?
-            .join("rofi-websearch-data.json");
+            .join(Self::DATA_FILE);
 
         if !data_path.exists() {
             Self::download_data()?;
