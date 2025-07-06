@@ -15,7 +15,7 @@ impl SearchSitesData {
     pub fn init() -> Self {
         match Self::get_sites_data() {
             Err(e) => {
-                eprintln!("unable to load sites data file: {}", e);
+                eprintln!("unable to load sites data file: {e}");
                 Self(HashMap::from([(
                     "ddg".into(),
                     SearchSite {
