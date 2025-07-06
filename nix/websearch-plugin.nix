@@ -8,6 +8,7 @@
   cairo,
   pango,
   curl,
+  xdg-utils,
 }:
 let
   pname = "rofi-websearch";
@@ -34,6 +35,12 @@ rustPlatform.buildRustPackage {
     pango
     curl
   ];
+
+  postPatch = ''
+    substituteInPlace rofi-websearch/src/lib.rs --replace-fail \
+    "Command::new(\"xdg-open\")" \
+    "Command::new(\"${xdg-utils}/bin/xdg-open\")" \
+  '';
 
   env = {
     PKGNAME = pname;
