@@ -14,11 +14,7 @@ struct Mode<'rofi> {
 }
 
 fn open_url(url: &str) {
-    if let Err(why) = Command::new("sh")
-        .arg("-c")
-        .arg(format!("xdg-open \"{}\"", url))
-        .spawn()
-    {
+    if let Err(why) = Command::new("xdg-open").arg(url).output() {
         println!("Failed to perform websearch: {}", why);
     }
 }
