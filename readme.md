@@ -6,7 +6,7 @@ Search with a selection of search engines, similar to [unduck](https://github.co
 Uses `#` as the prefix.
 
 - [x] implement prefix based search
-- [ ] auto download bangs.json if not present
+- [x] auto download bangs.json if not present
 - [ ] (optional) add search history
 
 
