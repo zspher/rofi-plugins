@@ -61,6 +61,7 @@
               cargo-edit
               cargo-watch
               rust-analyzer
+              lld
 
               rofi-wayland-unwrapped
               pkg-config
