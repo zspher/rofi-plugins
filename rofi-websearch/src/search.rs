@@ -9,6 +9,20 @@ use urlencoding::encode;
 
 pub struct SearchSitesData(HashMap<String, SearchSite>);
 
+impl Default for SearchSitesData {
+    fn default() -> Self {
+        Self(HashMap::from([(
+            "ddg".into(),
+            SearchSite {
+                title: "DuckDuckGo".into(),
+                default_url: "duckduckgo.com".into(),
+                id: "ddg".into(),
+                url: "https://duckduckgo.com/?q={{{s}}}".into(),
+            },
+        )]))
+    }
+}
+
 impl SearchSitesData {
     const DATA_FILE: &str = "rofi-websearch-data.json";
 
@@ -16,15 +30,7 @@ impl SearchSitesData {
         match Self::get_sites_data() {
             Err(e) => {
                 eprintln!("unable to load sites data file: {e}");
-                Self(HashMap::from([(
-                    "ddg".into(),
-                    SearchSite {
-                        title: "DuckDuckGo".into(),
-                        default_url: "duckduckgo.com".into(),
-                        id: "ddg".into(),
-                        url: "https://duckduckgo.com/?q={{{s}}}".into(),
-                    },
-                )]))
+                Self::default()
             }
             Ok(d) => d,
         }
