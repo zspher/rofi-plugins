@@ -69,13 +69,13 @@
               cairo
               pango
               just
-
               curl
             ];
 
             shellHook = ''
               # Required by rust-analyzer
-              export RUST_SRC_PATH=${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+              export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath [ pkgs.curl ]}
+              export RUST_SRC_PATH=${pkgs.rustToolchain}/lib/rustlib/src/rust/library
             '';
           };
         }
