@@ -79,7 +79,35 @@ impl SearchSitesData {
         Ok(Self(data.into_iter().map(|x| (x.id.clone(), x)).collect()))
     }
 
-    fn get_query_from_input(&self, input: &str) -> SearchQuery {
+    pub fn get_title_from_input(&self, input: &str) -> &str {
+        let query = SearchQuery::get(input);
+        let Some(data) = self.0.get(query.tag) else {
+            return " ";
+        };
+        &data.title
+    }
+
+    pub fn get_url_from_input(&self, input: &str) -> Option<String> {
+        let query = SearchQuery::get(input);
+        let Some(data) = self.0.get(query.tag) else {
+            eprintln!("search engine tag not found");
+            return None;
+        };
+
+        Some(match query.query {
+            Some(s) => data.url.replace("{{{s}}}", &encode(s)),
+            None => format!("https://{}", data.default_url),
+        })
+    }
+}
+
+pub struct SearchQuery<'a> {
+    pub tag: &'a str,
+    pub query: Option<&'a str>,
+}
+
+impl<'a> SearchQuery<'a> {
+    fn get(input: &'a str) -> Self {
         let (tag, search) = if let Some(con) = input.trim().strip_prefix('#') {
             match con.split_once(' ') {
                 Some((t, q)) => (Some(t).filter(|x| !x.is_empty()), Some(q)),
@@ -89,36 +117,10 @@ impl SearchSitesData {
             (None, Some(input))
         };
         SearchQuery {
-            tag: tag.unwrap_or("ddg").into(),
-            query: search.map(|s| s.into()),
+            tag: tag.unwrap_or("ddg"),
+            query: search,
         }
     }
-
-    pub fn get_title_from_input(&self, input: &str) -> &str {
-        let query = self.get_query_from_input(input);
-        let Some(data) = self.0.get(&query.tag) else {
-            return " ";
-        };
-        &data.title
-    }
-
-    pub fn get_url_from_input(&self, input: &str) -> Option<String> {
-        let query = self.get_query_from_input(input);
-        let Some(data) = self.0.get(&query.tag) else {
-            eprintln!("search engine tag not found");
-            return None;
-        };
-
-        Some(match query.query {
-            Some(s) => data.url.replace("{{{s}}}", &encode(&s)),
-            None => format!("https://{}", data.default_url),
-        })
-    }
-}
-
-pub struct SearchQuery {
-    pub tag: String,
-    pub query: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
