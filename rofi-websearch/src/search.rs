@@ -16,7 +16,6 @@ impl Default for SearchSitesData {
             SearchSite {
                 title: "DuckDuckGo".into(),
                 default_url: "duckduckgo.com".into(),
-                id: "ddg".into(),
                 url: "https://duckduckgo.com/?q={{{s}}}".into(),
             },
         )]))
@@ -48,9 +47,9 @@ impl SearchSitesData {
             "https://raw.githubusercontent.com/kagisearch/bangs/refs/heads/main/data/bangs.json",
         )?;
 
-        easy.write_function(move |data| {
-            let _ = io::Write::write(&mut file, data).map_err(|_| curl::easy::WriteError::Pause);
-            Ok(data.len())
+        easy.write_function(move |data| match io::Write::write(&mut file, data) {
+            Ok(_) => Ok(data.len()),
+            Err(_) => Err(curl::easy::WriteError::Pause),
         })?;
 
         easy.perform()?;
@@ -74,9 +73,20 @@ impl SearchSitesData {
         }
 
         let file = fs::read_to_string(data_path)?;
-        let data: Vec<SearchSite> = from_str(&file)?;
+        let data: Vec<SearchSiteRaw> = from_str(&file)?;
 
-        Ok(Self(data.into_iter().map(|x| (x.id.clone(), x)).collect()))
+        let mut sites: HashMap<String, SearchSite> = HashMap::new();
+        for site in data {
+            sites.insert(
+                site.t,
+                SearchSite {
+                    title: site.s,
+                    default_url: site.d,
+                    url: site.u,
+                },
+            );
+        }
+        Ok(Self(sites))
     }
 
     pub fn get_title_from_input(&self, input: &str) -> Option<&str> {
@@ -122,13 +132,16 @@ impl<'a> SearchQuery<'a> {
 }
 
 #[derive(Deserialize, Debug)]
+struct SearchSiteRaw {
+    pub s: String,
+    pub d: String,
+    pub t: String,
+    pub u: String,
+}
+
+#[derive(Debug)]
 pub struct SearchSite {
-    #[serde(rename = "s")]
     pub title: String,
-    #[serde(rename = "d")]
     pub default_url: String,
-    #[serde(rename = "t")]
-    pub id: String,
-    #[serde(rename = "u")]
     pub url: String,
 }
