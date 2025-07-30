@@ -83,7 +83,10 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
     }
 
     fn message(&mut self) -> rofi_mode::String {
-        self.sites.get_title_from_input(&self.previous_input).into()
+        self.sites
+            .get_title_from_input(&self.previous_input)
+            .unwrap_or(" ")
+            .into()
     }
 }
 

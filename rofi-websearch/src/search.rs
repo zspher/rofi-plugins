@@ -79,12 +79,10 @@ impl SearchSitesData {
         Ok(Self(data.into_iter().map(|x| (x.id.clone(), x)).collect()))
     }
 
-    pub fn get_title_from_input(&self, input: &str) -> &str {
+    pub fn get_title_from_input(&self, input: &str) -> Option<&str> {
         let query = SearchQuery::get(input);
-        let Some(data) = self.0.get(query.tag) else {
-            return " ";
-        };
-        &data.title
+        let data = self.0.get(query.tag)?;
+        Some(&data.title)
     }
 
     pub fn get_url_from_input(&self, input: &str) -> Option<String> {
