@@ -103,7 +103,10 @@ impl SearchSitesData {
         };
 
         Some(match query.query {
-            Some(s) => data.url.replace("{{{s}}}", &encode(s)),
+            Some(s) => {
+                let url = &encode(s).replace("%2F", "/");
+                data.url.replace("{{{s}}}", url)
+            }
             None => format!("https://{}", data.default_url),
         })
     }
