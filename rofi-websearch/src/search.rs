@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde_json::from_str;
 use urlencoding::encode;
 
-pub struct SearchSitesData(HashMap<String, SearchSite>);
+pub struct SearchSitesData(HashMap<Box<str>, SearchSite>);
 
 impl Default for SearchSitesData {
     fn default() -> Self {
@@ -75,10 +75,20 @@ impl SearchSitesData {
         let file = fs::read_to_string(data_path)?;
         let data: Vec<SearchSiteRaw> = from_str(&file)?;
 
-        let mut sites: HashMap<String, SearchSite> = HashMap::new();
+        let mut sites: HashMap<Box<str>, SearchSite> = HashMap::new();
         for site in data {
+            let mut tag = site.t;
+            if let Some(ts) = site.ts {
+                tag = ts.iter().fold(tag, |acc, item| {
+                    if item.len() < acc.len() {
+                        item.clone()
+                    } else {
+                        acc
+                    }
+                });
+            }
             sites.insert(
-                site.t,
+                tag,
                 SearchSite {
                     title: site.s,
                     default_url: site.d,
@@ -86,6 +96,7 @@ impl SearchSitesData {
                 },
             );
         }
+
         Ok(Self(sites))
     }
 
@@ -136,15 +147,16 @@ impl<'a> SearchQuery<'a> {
 
 #[derive(Deserialize, Debug)]
 struct SearchSiteRaw {
-    pub s: String,
-    pub d: String,
-    pub t: String,
-    pub u: String,
+    pub s: Box<str>,
+    pub d: Box<str>,
+    pub t: Box<str>,
+    pub u: Box<str>,
+    pub ts: Option<Box<[Box<str>]>>,
 }
 
 #[derive(Debug)]
 pub struct SearchSite {
-    pub title: String,
-    pub default_url: String,
-    pub url: String,
+    pub title: Box<str>,
+    pub default_url: Box<str>,
+    pub url: Box<str>,
 }

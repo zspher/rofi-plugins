@@ -8,7 +8,7 @@ use std::process::Command;
 struct Mode<'rofi> {
     previous_input: String,
     sites: SearchSitesData,
-    entries: Vec<String>,
+    entry: Box<str>,
     #[allow(dead_code)]
     api: rofi_mode::Api<'rofi>,
 }
@@ -26,23 +26,22 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
         api.set_display_name("websearch");
 
         let sites = SearchSitesData::init();
-        let entries = vec!["Search".into()];
+        let entry = "Search".into();
 
         Ok(Self {
             previous_input: String::new(),
             api,
-            entries,
+            entry,
             sites,
         })
     }
 
     fn entries(&mut self) -> usize {
-        self.entries.len()
+        1
     }
 
-    fn entry_content(&self, line: usize) -> rofi_mode::String {
-        let entry = &self.entries[line];
-        rofi_mode::format!("{}", entry)
+    fn entry_content(&self, _line: usize) -> rofi_mode::String {
+        rofi_mode::format!("{}", self.entry)
     }
 
     fn react(&mut self, event: Event, input: &mut rofi_mode::String) -> Action {
@@ -71,7 +70,7 @@ impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
         if line == 0 {
             return true;
         }
-        matcher.matches(&self.entries[line])
+        matcher.matches(&self.entry)
     }
 
     fn preprocess_input(&mut self, input: &str) -> rofi_mode::String {
