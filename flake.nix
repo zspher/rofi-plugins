@@ -63,13 +63,15 @@
               rust-analyzer
               lld
 
-              rofi-wayland-unwrapped
+              rofi
               pkg-config
               glib
               cairo
               pango
               just
               curl
+
+              libqalculate
             ];
 
             shellHook = ''
