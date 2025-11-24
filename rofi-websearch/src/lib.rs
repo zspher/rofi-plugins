@@ -1,9 +1,12 @@
 mod search;
+use std::io;
+use std::os::unix::process::CommandExt;
+use std::process::{Command, Stdio};
+
 use search::SearchSitesData;
 
 use rofi_mode::{Action, Event};
 use rofi_plugin_sys as ffi;
-use std::process::Command;
 
 struct Mode<'rofi> {
     previous_input: String,
@@ -14,9 +17,31 @@ struct Mode<'rofi> {
 }
 
 fn open_url(url: &str) {
-    if let Err(why) = Command::new("xdg-open").arg(url).output() {
-        println!("Failed to perform websearch: {why}");
+    let mut cmd = Command::new("xdg-open");
+    cmd.arg(url)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    // from: https://github.com/alacritty/alacritty/blob/b9c886872d1202fc9302f68a0bedbb17daa35335/alacritty/src/daemon.rs#L49
+    let _ = unsafe {
+        cmd.pre_exec(|| {
+            match libc::fork() {
+                -1 => return Err(io::Error::last_os_error()),
+                0 => (),
+                _ => libc::_exit(0),
+            }
+
+            if libc::setsid() == -1 {
+                return Err(io::Error::last_os_error());
+            }
+
+            Ok(())
+        })
+        .spawn()
+        .expect("Unable to launch url")
     }
+    .wait();
 }
 
 impl<'rofi> rofi_mode::Mode<'rofi> for Mode<'rofi> {
