@@ -102,13 +102,13 @@ impl SearchSitesData {
 
     pub fn get_title_from_input(&self, input: &str) -> Option<&str> {
         let query = SearchQuery::get(input);
-        let data = self.0.get(query.tag)?;
+        let data = self.0.get(&query.tag)?;
         Some(&data.title)
     }
 
     pub fn get_url_from_input(&self, input: &str) -> Option<String> {
         let query = SearchQuery::get(input);
-        let Some(data) = self.0.get(query.tag) else {
+        let Some(data) = self.0.get(&query.tag) else {
             eprintln!("search engine tag not found");
             return None;
         };
@@ -124,13 +124,13 @@ impl SearchSitesData {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct SearchQuery<'a> {
-    pub tag: &'a str,
-    pub query: Option<String>,
+pub struct SearchQuery {
+    pub tag: Box<str>,
+    pub query: Option<Box<str>>,
 }
 
-impl<'a> SearchQuery<'a> {
-    fn get(input: &'a str) -> Self {
+impl SearchQuery {
+    fn get(input: &str) -> Self {
         let (tag, query) = if let Some(start) = input.find('#') {
             let rest = &input[start..];
             let end = start + rest.find([' ', '\n']).unwrap_or(rest.len());
@@ -138,11 +138,11 @@ impl<'a> SearchQuery<'a> {
 
             let before = input[..start].trim();
             let after = input[end..].trim();
-            let query = match (before.is_empty(), after.is_empty()) {
+            let query: Option<Box<str>> = match (before.is_empty(), after.is_empty()) {
                 (true, true) => None,
                 (true, false) => Some(after.into()),
                 (false, true) => Some(before.into()),
-                (false, false) => Some(format!("{before} {after}")),
+                (false, false) => Some(format!("{before} {after}").into()),
             };
 
             (Some(tag), query)
@@ -151,7 +151,7 @@ impl<'a> SearchQuery<'a> {
         };
 
         SearchQuery {
-            tag: tag.unwrap_or("dax"),
+            tag: tag.unwrap_or("dax").into(),
             query,
         }
     }
@@ -181,7 +181,7 @@ mod tests {
     fn search_query_parse_1() {
         let data = SearchQuery::get("#ddg test");
         let expected = SearchQuery {
-            tag: "ddg",
+            tag: "ddg".into(),
             query: Some("test".into()),
         };
         assert_eq!(data, expected);
@@ -191,7 +191,7 @@ mod tests {
     fn search_query_parse_2() {
         let data = SearchQuery::get("a text #ddg test");
         let expected = SearchQuery {
-            tag: "ddg",
+            tag: "ddg".into(),
             query: Some("a text test".into()),
         };
         assert_eq!(data, expected);
