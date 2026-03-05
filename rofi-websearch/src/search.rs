@@ -12,9 +12,9 @@ pub struct SearchSitesData(HashMap<Box<str>, SearchSite>);
 impl Default for SearchSitesData {
     fn default() -> Self {
         Self(HashMap::from([(
-            "ddg".into(),
+            "dax".into(),
             SearchSite {
-                title: "DuckDuckGo".into(),
+                title: "DuckDuckGo test".into(),
                 default_url: "duckduckgo.com".into(),
                 url: "https://duckduckgo.com/?q={{{s}}}".into(),
             },
@@ -115,7 +115,7 @@ impl SearchSitesData {
 
         Some(match query.query {
             Some(s) => {
-                let url = &encode(s).replace("%2F", "/");
+                let url = &encode(&s).replace("%2F", "/");
                 data.url.replace("{{{s}}}", url)
             }
             None => format!("https://{}", data.default_url),
@@ -123,24 +123,36 @@ impl SearchSitesData {
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub struct SearchQuery<'a> {
     pub tag: &'a str,
-    pub query: Option<&'a str>,
+    pub query: Option<String>,
 }
 
 impl<'a> SearchQuery<'a> {
     fn get(input: &'a str) -> Self {
-        let (tag, search) = if let Some(con) = input.trim().strip_prefix('#') {
-            match con.split_once(' ') {
-                Some((t, q)) => (Some(t).filter(|x| !x.is_empty()), Some(q)),
-                None => ((Some(con).filter(|x| !x.is_empty())), None),
-            }
+        let (tag, query) = if let Some(start) = input.find('#') {
+            let rest = &input[start..];
+            let end = start + rest.find([' ', '\n']).unwrap_or(rest.len());
+            let tag = &input[start + 1..end];
+
+            let before = input[..start].trim();
+            let after = input[end..].trim();
+            let query = match (before.is_empty(), after.is_empty()) {
+                (true, true) => None,
+                (true, false) => Some(after.into()),
+                (false, true) => Some(before.into()),
+                (false, false) => Some(format!("{before} {after}")),
+            };
+
+            (Some(tag), query)
         } else {
-            (None, Some(input))
+            (None, Some(input.trim().into()))
         };
+
         SearchQuery {
-            tag: tag.unwrap_or("ddg"),
-            query: search,
+            tag: tag.unwrap_or("dax"),
+            query,
         }
     }
 }
@@ -159,4 +171,29 @@ pub struct SearchSite {
     pub title: Box<str>,
     pub default_url: Box<str>,
     pub url: Box<str>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn search_query_parse_1() {
+        let data = SearchQuery::get("#ddg test");
+        let expected = SearchQuery {
+            tag: "ddg",
+            query: Some("test".into()),
+        };
+        assert_eq!(data, expected);
+    }
+
+    #[test]
+    fn search_query_parse_2() {
+        let data = SearchQuery::get("a text #ddg test");
+        let expected = SearchQuery {
+            tag: "ddg",
+            query: Some("a text test".into()),
+        };
+        assert_eq!(data, expected);
+    }
 }
