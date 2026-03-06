@@ -41,8 +41,9 @@ impl SearchSitesData {
             .ok_or(io::Error::from(io::ErrorKind::NotFound))?
             .join(Self::DATA_FILE);
 
-        let mut file = fs::File::create(data_path)?;
+        let tmp_path = data_path.with_extension("tmp");
 
+        let mut file = fs::File::create(&tmp_path)?;
         let mut easy = Easy::new();
         easy.url(
             "https://raw.githubusercontent.com/kagisearch/bangs/refs/heads/main/data/bangs.json",
@@ -57,9 +58,11 @@ impl SearchSitesData {
 
         let status = easy.response_code()?;
         if status != 200 {
+            let _ = fs::remove_file(&tmp_path);
             return Err(io::Error::from(io::ErrorKind::NotFound));
         }
 
+        fs::rename(&tmp_path, &data_path)?;
         Ok(())
     }
 
