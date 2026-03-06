@@ -1,23 +1,24 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io;
+use std::sync::Arc;
 
 use curl::easy::Easy;
 use serde::Deserialize;
 use serde_json::from_str;
 use urlencoding::encode;
 
-pub struct SearchSitesData(HashMap<Box<str>, SearchSite>);
+pub struct SearchSitesData(HashMap<Box<str>, Arc<SearchSite>>);
 
 impl Default for SearchSitesData {
     fn default() -> Self {
         Self(HashMap::from([(
             "dax".into(),
-            SearchSite {
+            Arc::new(SearchSite {
                 title: "DuckDuckGo test".into(),
                 default_url: "duckduckgo.com".into(),
                 url: "https://duckduckgo.com/?q={{{s}}}".into(),
-            },
+            }),
         )]))
     }
 }
@@ -75,26 +76,21 @@ impl SearchSitesData {
         let file = fs::read_to_string(data_path)?;
         let data: Vec<SearchSiteRaw> = from_str(&file)?;
 
-        let mut sites: HashMap<Box<str>, SearchSite> = HashMap::new();
+        let mut sites: HashMap<Box<str>, Arc<SearchSite>> = HashMap::new();
         for site in data {
-            let mut tag = site.t;
+            let mut tags: Vec<Box<str>> = vec![site.t];
             if let Some(ts) = site.ts {
-                tag = ts.iter().fold(tag, |acc, item| {
-                    if item.len() < acc.len() {
-                        item.clone()
-                    } else {
-                        acc
-                    }
-                });
+                tags.extend(ts.into_iter());
             }
-            sites.insert(
-                tag,
-                SearchSite {
-                    title: site.s,
-                    default_url: site.d,
-                    url: site.u,
-                },
-            );
+            let data = Arc::new(SearchSite {
+                title: site.s,
+                default_url: site.d,
+                url: site.u,
+            });
+
+            for t in tags {
+                sites.insert(t, data.clone());
+            }
         }
 
         Ok(Self(sites))
