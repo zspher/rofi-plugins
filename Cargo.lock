@@ -432,6 +432,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rofi-clipboard"
+version = "0.1.0"
+dependencies = [
+ "rofi-mode",
+ "rofi-plugin-sys",
+]
+
+[[package]]
 name = "rofi-mode"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

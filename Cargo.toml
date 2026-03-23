@@ -1,5 +1,5 @@
 [workspace]
-members = ["rofi-websearch"]
+members = ["rofi-clipboard", "rofi-websearch"]
 resolver = "3"
 
 [profile.release]
